@@ -201,8 +201,15 @@ Decisions #7–#13 follow from these.
   musical content lives in Mu, everything else goes in metadata.
 - A single entry point — `Pipeline.run(RunContext, registries)` — replaces
   callers loading a `List<PipelineStage>` and calling `process()` by hand.
-- Assumption to confirm: Mu is the musical object from the companion
-  libraries.
+- Mu is the companion libraries' musical object. **The core library refers
+  to it only through a type parameter** (`RunContext<M>`, `Plugin<M>`), so it
+  never depends on the music libraries (consistent with #3). Real plugins use
+  `RunContext<Mu>`; core tests use a small fake Mu type.
+- **`Wrapper`, `MapWrapper` and `PipelineStage.process(Wrapper)` are replaced
+  outright**, not kept alongside. Nothing real depends on them yet — only the
+  built-in stages and the test adapter, which move to `Plugin`/`RunContext`.
+- **Java target: JDK 25 (current LTS)**, up from 1.8 (2026-10-11). Chosen
+  over JDK 27 (newest, but non-LTS and superseded March 2027).
 - `ConditionalStage` predicates (#5) move from `Predicate<Wrapper>` to
   `Predicate<RunContext>`, same reasoning: the context *is* the state.
 
@@ -388,9 +395,10 @@ Decisions #3–#6 are resolved. Open after the 2026-10-11 revision:
   between inlining the sub-recipe in the resolved output, or keeping the
   `ref` plus a per-include overrides block. Overrides keep the sub-recipe's
   identity (#4); inlining is simpler to replay.
-- **Mu:** confirm it's the companion libraries' musical object, and whether
-  the library depends on it directly or via a generic type parameter
-  (keeping the core library music-agnostic, per #3).
+- **Nested stages in resolved output:** the include question above is part of
+  a broader one — `ConditionalStage` also nests stages, so the resolved
+  config is a tree and nested generated values need a home. First
+  implementation supports flat recipes only.
 - **Metadata shape:** a free-form map for now; revisit once real analyses
   exist.
 - **`options` YAML syntax:** the example above is a placeholder.
@@ -401,6 +409,3 @@ Decisions #3–#6 are resolved. Open after the 2026-10-11 revision:
 - **Invalid pinned values (#13):** fail, clamp/adapt, or a per-param policy.
   Deferred until the behavior can be observed in real runs; failing is only
   a provisional default.
-- **Migration:** what happens to `Wrapper`/`MapWrapper` and
-  `PipelineStage.process(Wrapper)` — replace outright, or adapt existing
-  stages during the transition.
